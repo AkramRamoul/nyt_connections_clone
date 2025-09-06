@@ -1,0 +1,24 @@
+{
+  "groups": [
+    {
+      "category": "RUPTURED",
+      "color": "#fae06e",
+      "words": ["Blew", "Broke", "Burst", "Split"]
+    },
+    {
+      "category": "APPARITION",
+      "color": "#9fc259",
+      "words": ["SHADE", "SPECTER", "SPIRIT", "WIGHT"]
+    },
+    {
+      "category": "PREDICT",
+      "color": "#b1c5f0",
+      "words": ["CALL", "DIVINE", "FORECAST", "READ"]
+    },
+    {
+      "category": "BEST ___ PERFORMANCE GRAMMY AWARD",
+      "color": "#b980c4",
+      "words": ["AMERICANA", "CHORAL", "JAZZ", "RAP"]
+    }
+  ]
+}
