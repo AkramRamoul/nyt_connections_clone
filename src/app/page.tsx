@@ -28,7 +28,7 @@ export default function Home() {
     const todayPuzzle = puzzles.find((p) => p.date === todayKey);
 
     if (!todayPuzzle) {
-      console.error("❌ No puzzle found for", todayKey);
+      console.error("no puzzle ", todayKey);
       setPuzzle(puzzles[puzzles.length - 1]);
       return;
     }
