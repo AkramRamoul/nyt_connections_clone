@@ -1,7 +1,6 @@
 "use client";
 
 import GameBoard from "@/components/GameBoard";
-import puzzle from "../data/puzzle.json";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Lives from "@/components/Lives";
@@ -15,8 +14,49 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { getTodayKey, Puzzle } from "@/lib/utils";
+
+import allPuzzles from "../data/puzzle.json";
 
 export default function Home() {
+  const puzzles = allPuzzles as Puzzle[];
+
+  const [puzzle, setPuzzle] = useState<Puzzle | null>(null);
+
+  useEffect(() => {
+    const todayKey = getTodayKey();
+    const todayPuzzle = puzzles.find((p) => p.date === todayKey);
+
+    if (!todayPuzzle) {
+      console.error("❌ No puzzle found for", todayKey);
+      setPuzzle(puzzles[puzzles.length - 1]);
+      return;
+    }
+
+    setPuzzle(todayPuzzle);
+
+    const saved = localStorage.getItem(`connections-game-${todayKey}`);
+    if (saved) {
+      try {
+        const state = JSON.parse(saved);
+        setSolved(state.solved || []);
+        setLives(state.lives ?? 4);
+        setAttempts(state.attempts || 0);
+        setGameOver(state.gameOver || false);
+        setShuffled(
+          state.shuffled || todayPuzzle.groups.flatMap((g) => g.words)
+        );
+        setOpen(state.open || false);
+        return;
+      } catch (err) {
+        console.error("Failed to parse saved state:", err);
+      }
+    }
+
+    const allWords = todayPuzzle.groups.flatMap((g) => g.words);
+    setShuffled([...allWords].sort(() => Math.random() - 0.5));
+  }, [puzzles]);
+
   const [selected, setSelected] = useState<string[]>([]);
   const [solved, setSolved] = useState<
     { category: string; words: string[]; color: string }[]
@@ -28,10 +68,21 @@ export default function Home() {
   const [gameOver, setGameOver] = useState(false);
   const [open, setOpen] = useState(false);
 
+  const todayKey = getTodayKey();
+  const storageKey = `connections-game-${todayKey}`;
+
   useEffect(() => {
-    const allWords = puzzle.groups.flatMap((g) => g.words);
-    setShuffled([...allWords].sort(() => Math.random() - 0.5));
-  }, []);
+    const state = {
+      solved,
+      lives,
+      attempts,
+      gameOver,
+      shuffled,
+      open,
+    };
+
+    localStorage.setItem(storageKey, JSON.stringify(state));
+  }, [solved, lives, attempts, gameOver, shuffled, open, storageKey]);
 
   const handleSelect = (word: string) => {
     setSelected((prev) =>
@@ -52,7 +103,7 @@ export default function Home() {
   const checkGroup = () => {
     if (selected.length !== 4) return;
 
-    const found = puzzle.groups.find((g) =>
+    const found = puzzle?.groups.find((g) =>
       g.words.every((w) => selected.includes(w))
     );
 
@@ -60,14 +111,14 @@ export default function Home() {
       setSolved((prev) => [...prev, found]);
       setSelected([]);
 
-      if (solved.length + 1 === puzzle.groups.length) {
+      if (solved.length + 1 === puzzle?.groups.length) {
         setGameOver(true);
         setOpen(true);
       }
     } else {
       setAttempts((prev) => prev + 1);
 
-      if (isOneAway(selected, puzzle.groups)) {
+      if (isOneAway(selected, puzzle?.groups || [])) {
         toast("One away...", {
           position: "top-center",
           duration: 1400,
@@ -117,15 +168,17 @@ export default function Home() {
     <main className="min-h-screen w-full flex flex-col items-center justify-center p-6 bg-[#ffffff]">
       <h2 className="text-2xl mb-6 text-black">Create four groups of four!</h2>
 
-      <GameBoard
-        words={shuffled}
-        onSelect={handleSelect}
-        selected={selected}
-        Solved={solved}
-        wrong={wrong}
-        lives={lives}
-        correctGroups={puzzle.groups}
-      />
+      {shuffled.length > 0 && (
+        <GameBoard
+          words={shuffled}
+          onSelect={handleSelect}
+          selected={selected}
+          Solved={solved}
+          wrong={wrong}
+          correctGroups={puzzle?.groups || []}
+          lives={lives}
+        />
+      )}
 
       {!gameOver ? (
         <>
@@ -188,8 +241,17 @@ export default function Home() {
             </div>
             <DrawerFooter>
               <DrawerClose asChild>
-                <Button variant="outline">Close</Button>
+                <Button variant="outline">Back to puzzle</Button>
               </DrawerClose>
+              <Button
+                onClick={() => {
+                  localStorage.removeItem(storageKey);
+                  window.location.reload();
+                }}
+                variant={"outline"}
+              >
+                Reset Game
+              </Button>
             </DrawerFooter>
           </div>
         </DrawerContent>
