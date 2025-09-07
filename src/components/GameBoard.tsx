@@ -38,11 +38,11 @@ const GameBoard = ({
   };
 
   React.useEffect(() => {
+    console.log("lives changed:", lives);
     if (lives <= 0) {
       setRevealed(correctGroups.filter((g) => !Solved.includes(g)));
       toast("Next time", {
         position: "top-center",
-        duration: 1400,
         style: {
           position: "fixed",
           left: "50%",
@@ -56,7 +56,6 @@ const GameBoard = ({
           borderRadius: "8px",
           backgroundColor: "#000",
           color: "#fff",
-          boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
 
           fontWeight: 900,
           fontSize: "15px",

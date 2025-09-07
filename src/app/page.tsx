@@ -23,39 +23,62 @@ export default function Home() {
 
   const [puzzle, setPuzzle] = useState<Puzzle | null>(null);
 
+  const storageKey = "connections-game";
+  console.log(puzzle?.date);
   useEffect(() => {
     const todayKey = getTodayKey();
     const todayPuzzle = puzzles.find((p) => p.date === todayKey);
 
     if (!todayPuzzle) {
-      console.error("no puzzle ", todayKey);
-      setPuzzle(puzzles[puzzles.length - 1]);
+      console.error("❌ No puzzle found for", todayKey);
       return;
     }
 
     setPuzzle(todayPuzzle);
 
-    const saved = localStorage.getItem(`connections-game-${todayKey}`);
+    const saved = localStorage.getItem(storageKey);
     if (saved) {
       try {
         const state = JSON.parse(saved);
-        setSolved(state.solved || []);
-        setLives(state.lives ?? 4);
-        setAttempts(state.attempts || 0);
-        setGameOver(state.gameOver || false);
-        setShuffled(
-          state.shuffled || todayPuzzle.groups.flatMap((g) => g.words)
-        );
-        setOpen(state.open || false);
-        return;
+
+        if (state.puzzleId !== todayPuzzle.date) {
+          // 🚨 Puzzle changed → reset everything
+          localStorage.removeItem(storageKey);
+
+          setSolved([]);
+          setLives(4);
+          setAttempts(0);
+          setGameOver(false);
+          setOpen(false);
+
+          const allWords = todayPuzzle.groups.flatMap((g) => g.words);
+          setShuffled([...allWords].sort(() => Math.random() - 0.5));
+          return; // ⬅️ don’t restore old state
+        } else {
+          // ✅ Restore state
+          setSolved(state.solved || []);
+          setLives(state.lives ?? 4);
+          setAttempts(state.attempts || 0);
+          setGameOver(state.gameOver || false);
+          setShuffled(
+            state.shuffled || todayPuzzle.groups.flatMap((g) => g.words)
+          );
+          setOpen(state.open || false);
+          return;
+        }
       } catch (err) {
         console.error("Failed to parse saved state:", err);
+        localStorage.removeItem(storageKey);
       }
     }
-
     const allWords = todayPuzzle.groups.flatMap((g) => g.words);
     setShuffled([...allWords].sort(() => Math.random() - 0.5));
-  }, [puzzles]);
+  }, [puzzles, storageKey]);
+  useEffect(() => {
+    if (!puzzle) return;
+    const allWords = puzzle.groups.flatMap((g) => g.words);
+    setShuffled([...allWords].sort(() => Math.random() - 0.5));
+  }, [puzzle]);
 
   const [selected, setSelected] = useState<string[]>([]);
   const [solved, setSolved] = useState<
@@ -68,10 +91,9 @@ export default function Home() {
   const [gameOver, setGameOver] = useState(false);
   const [open, setOpen] = useState(false);
 
-  const todayKey = getTodayKey();
-  const storageKey = `connections-game-${todayKey}`;
-
   useEffect(() => {
+    if (!puzzle) return; // don’t save until puzzle is set
+
     const state = {
       solved,
       lives,
@@ -79,10 +101,11 @@ export default function Home() {
       gameOver,
       shuffled,
       open,
+      puzzleId: puzzle.date,
     };
 
     localStorage.setItem(storageKey, JSON.stringify(state));
-  }, [solved, lives, attempts, gameOver, shuffled, open, storageKey]);
+  }, [solved, lives, attempts, gameOver, shuffled, open, storageKey, puzzle]);
 
   const handleSelect = (word: string) => {
     setSelected((prev) =>
