@@ -121,7 +121,6 @@ export default function Home() {
       if (isOneAway(selected, puzzle?.groups || [])) {
         toast("One away...", {
           position: "top-center",
-          duration: 1400,
           style: {
             position: "fixed",
             left: "50%",
