@@ -4,8 +4,8 @@ interface Props {
 
 export default function Lives({ lives }: Props) {
   return (
-    <div className="flex gap-2 mb-4 flex-row items-center font-light justify-center text-lg">
-      <p>Mistakes remaining:</p>
+    <div className="flex gap-2 mb-4 flex-row items-center justify-center">
+      <p className="mb-2 text-xl">Mistakes remaining:</p>
       {Array.from({ length: 4 }).map((_, i) => (
         <div
           key={i}

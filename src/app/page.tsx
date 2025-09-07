@@ -6,6 +6,15 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Lives from "@/components/Lives";
 import { toast } from "sonner";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 
 export default function Home() {
   const [selected, setSelected] = useState<string[]>([]);
@@ -13,10 +22,11 @@ export default function Home() {
     { category: string; words: string[]; color: string }[]
   >([]);
   const [lives, setLives] = useState(4);
-
-  const [wrong, setWrong] = useState<boolean>(false);
-
+  const [wrong, setWrong] = useState(false);
   const [shuffled, setShuffled] = useState<string[]>([]);
+  const [attempts, setAttempts] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const allWords = puzzle.groups.flatMap((g) => g.words);
@@ -47,33 +57,65 @@ export default function Home() {
     );
 
     if (found && !solved.some((s) => s.category === found.category)) {
-      // ✅ correct group
       setSolved((prev) => [...prev, found]);
       setSelected([]);
+
+      if (solved.length + 1 === puzzle.groups.length) {
+        setGameOver(true);
+        setOpen(true);
+      }
     } else {
+      setAttempts((prev) => prev + 1);
+
       if (isOneAway(selected, puzzle.groups)) {
-        console.log("One away!");
-        toast("You're one away!", {
-          description: "Try swapping one word.",
+        toast("One away...", {
+          position: "top-center",
+          duration: 1400,
+          style: {
+            position: "fixed",
+            left: "50%",
+            top: "18px",
+            transform: "translateX(-50%)",
+            zIndex: 9999,
+            display: "inline-block",
+            width: "auto",
+            padding: "8px 18px",
+            borderRadius: "8px",
+            backgroundColor: "#000",
+            color: "#fff",
+            boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
+            fontWeight: 900,
+            fontSize: "15px",
+            lineHeight: "1.2",
+            textTransform: "uppercase",
+            letterSpacing: "0.4px",
+            textAlign: "center",
+            whiteSpace: "nowrap",
+          },
         });
       }
 
-      setLives((prev) => prev - 1);
-      setWrong(true);
+      setLives((prev) => {
+        const newLives = prev - 1;
+        if (newLives <= 0) {
+          setGameOver(true);
+          setOpen(true);
+        }
+        return newLives;
+      });
 
-      setTimeout(() => {
-        setWrong(false);
-        setSelected([]);
-      }, 600);
+      setWrong(true);
+      setTimeout(() => setWrong(false), 600);
     }
   };
+
   const shuffle = () => {
     setShuffled((prev) => [...prev].sort(() => Math.random() - 0.5));
   };
 
   return (
     <main className="min-h-screen w-full flex flex-col items-center justify-center p-6 bg-[#ffffff]">
-      <h1 className="text-3xl font-bold mb-6 text-black">Connections Clone</h1>
+      <h2 className="text-2xl mb-6 text-black">Create four groups of four!</h2>
 
       <GameBoard
         words={shuffled}
@@ -81,29 +123,77 @@ export default function Home() {
         selected={selected}
         Solved={solved}
         wrong={wrong}
+        lives={lives}
+        correctGroups={puzzle.groups}
       />
 
-      <Lives lives={lives} />
+      {!gameOver ? (
+        <>
+          <Lives lives={lives} />
+          <div className="flex flex-row gap-4 mt-4">
+            <Button
+              onClick={shuffle}
+              className="rounded-full h-12 border text-xl font-semibold"
+              variant={"outline"}
+            >
+              Shuffle
+            </Button>
+            <Button
+              onClick={() => setSelected([])}
+              className="rounded-full h-12 border text-xl font-semibold"
+              variant={"outline"}
+            >
+              Deselect All
+            </Button>
+            <Button
+              disabled={selected.length !== 4}
+              onClick={checkGroup}
+              className="text-xl font-semibold rounded-full bg-black h-12"
+            >
+              Submit
+            </Button>
+          </div>
+        </>
+      ) : (
+        <Button
+          onClick={() => setOpen(true)}
+          className="text-xl font-semibold rounded-full bg-black h-12 mt-4"
+        >
+          View Results
+        </Button>
+      )}
 
-      <div className="flex flex-row gap-4 mt-4">
-        <Button
-          onClick={shuffle}
-          className="rounded-full h-12 border"
-          variant={"outline"}
-        >
-          Shuffle
-        </Button>
-        <Button
-          onClick={() => setSelected([])}
-          className="rounded-full h-12 border"
-          variant={"outline"}
-        >
-          Deselct All
-        </Button>
-        <Button onClick={checkGroup} className="rounded-full bg-black h-12">
-          Check Group
-        </Button>
-      </div>
+      <Drawer open={open} onOpenChange={setOpen}>
+        <DrawerContent>
+          <div className="mx-auto w-full max-w-sm">
+            <DrawerHeader>
+              <DrawerTitle>Results</DrawerTitle>
+              <DrawerDescription>
+                {gameOver &&
+                  (lives > 0
+                    ? `You got it in ${attempts} ${
+                        attempts === 1 ? "try" : "tries"
+                      } today!`
+                    : "Try again next time!")}
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="p-4 pb-0">
+              <div className="flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-4xl font-bold tracking-tight">
+                    {lives > 0 ? "🎉 Victory!" : "💀 Game Over"}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DrawerFooter>
+              <DrawerClose asChild>
+                <Button variant="outline">Close</Button>
+              </DrawerClose>
+            </DrawerFooter>
+          </div>
+        </DrawerContent>
+      </Drawer>
     </main>
   );
 }
